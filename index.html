@@ -1,19 +1,23 @@
 <html>
-<meta http-equiv="Expires" content="0">
-<meta http-equiv="Last-Modified" content="0">
-<meta http-equiv="Cache-Control" content="no-cache, mustrevalidate">
-<meta http-equiv="Pragma" content="no-cache">
+<head>
+    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Last-Modified" content="0">
+    <meta http-equiv="Cache-Control" content="no-cache, mustrevalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+</head>
 
-<div class="container">
-    <div class="row">
-        <div class="col">
-            <input type="hidden" name="suuid" id="suuid" value="{{ .suuid }}">
-            <input type="hidden" name="port" id="port" value="{{ .port }}">
-            <video id="livestream" style="width:600px;" controls autoplay muted></video>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <input type="hidden" name="suuid" id="suuid" value="{{ .suuid }}">
+                <input type="hidden" name="port" id="port" value="{{ .port }}">
+                <video id="livestream" style="width:600px;" controls autoplay muted></video>
+            </div>
         </div>
     </div>
-</div>
-
-<script src="index.js"></script>
+    
+    <script src="index.js"></script>
+</body>
 
 </html>
