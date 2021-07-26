@@ -19,8 +19,7 @@
             </div>
         </div>
     </div>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {     
+    <script>  
             const playerInstance = function () {
                 this.isPlaying = false;
                 this.streamingStarted = false;
@@ -79,7 +78,6 @@
                         const data = new Uint8Array(event.data);
                         console.log('Message:', event.data);
                         if (data[0] === 9) {
-                            console.log('no pushPacket')
                             let decoded_arr = data.slice(1);
                             let mimeCodec;
                             if (window.TextDecoder) {
@@ -124,13 +122,13 @@
                 };
                 this.pushPacket = (arr) => {
                     let view = new Uint8Array(arr);
-                    console.log('push event.data:', view);
+                    console.log('push event.data:', view.buffer);
                     if (this.verbose) {
                         console.log("got", arr.byteLength, "bytes.  Values=", view[0], view[1], view[2], view[3], view[4]);
                     }
                     let data = arr;
                     if (!this.streamingStarted && this.livestream) {
-                        this.sourceBuffer.appendBuffer(view);
+                        this.sourceBuffer.appendBuffer(view.buffer);
                         this.streamingStarted = true;
                         return;
                     }
@@ -164,7 +162,6 @@
 
             const player = playerInstance();
             player.initialize();
-        });
             
 
         // window.onload = msePlayer();
