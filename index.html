@@ -2,10 +2,10 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="Expires" content="0">
+    <!-- <meta http-equiv="Expires" content="0">
     <meta http-equiv="Last-Modified" content="0">
     <meta http-equiv="Cache-Control" content="no-cache, mustrevalidate">
-    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Pragma" content="no-cache"> -->
 </head>
 
 <body>
@@ -13,160 +13,79 @@
     <div class="container">
         <div class="row">
             <div class="col">
-                <input type="hidden" name="suuid" id="suuid" value="{{ .suuid }}">
-                <input type="hidden" name="port" id="port" value="{{ .port }}">
+                <!-- <input type="hidden" name="suuid" id="suuid" value="{{ .suuid }}">
+                <input type="hidden" name="port" id="port" value="{{ .port }}"> -->
                 <video id="livestream" style="width:600px;" controls autoplay muted></video>
+                <button onclick="play()">Play</button>
+                <button onclick="window.player.stop()">Stop</button>
             </div>
         </div>
     </div>
-    <script>  
-            const playerInstance = function () {
-                this.isPlaying = false;
-                this.streamingStarted = false;
-                this.ms = null;
-                this.queue = [];
-                this.ws = null;
-                this.sourceBuffer = null;
-                this.livestream = document.getElementById("livestream");
-                this.suuid = "tennis90.main.360p";
-                this.initialize = () => {
-                    if ('MediaSource' in window) {
-                        this.ms = new MediaSource();
-                        this.ms.addEventListener('sourceopen', this.start(), false);
-                        this.livestream.src = window.URL.createObjectURL(this.ms);
-                        this.livestream.onpause = () => {
-                            console.log("The video has been paused");
-                            this.stop();
-                        };
-                        this.livestream.onplay = () => {
-                            console.log("The video has been started");
-                            // функция для отправки команды ping на сервер
-                            function wsSendPing() {
-                                this.ws.send(JSON.stringify({action: 'PING'}));
-                            }
-                            wsSendPing();
-                            if (this.isPlaying === false) {
-                                this.start();
-                            }
-                        };
+    
+    <script src="index.js"></script>
+    <!-- <script src="FlussonicMsePlayer.js"></script>
 
-                    } else {
-                        console.error("Unsupported MSE");
-                    }
-                };
-                this.start = () => {
-                    this.isPlaying = true;
-                    this.ws = new WebSocket("ws://localhost:9000", "rust-websocket");
-                    this.ws.binaryType = "arraybuffer";
-                    this.ws.onopen = (event) => {
-                        console.log('Socket opened', event);
-                        console.log('completed');
-                    }
-                    this.ws.onclose = (event) => {
-                        console.log('Socket closed', event);
-                        if (this.isPlaying === true) {
-                            setTimeout(() => {
-                                // this.start();
-                            }, 1000);
-                        }
-                    }
-                    this.ws.onerror = (err) => {
-                        console.error('Socket encountered error: ', err.message, 'Closing socket');
-                        this.ws.close();
-                    };
-                    this.ws.onmessage = (event) => {
-                        const data = new Uint8Array(event.data);
-                        console.log('Message:', event.data);
-                        if (data[0] === 9) {
-                            let decoded_arr = data.slice(1);
-                            let mimeCodec;
-                            if (window.TextDecoder) {
-                                mimeCodec = new TextDecoder("utf-8").decode(decoded_arr);
-                            } else {
-                                //mimeCodec =Utf8ArrayToStr(decoded_arr);
-                                mimeCodec = String.fromCharCode(decoded_arr);
-                            }
-                            if (this.verbose) {
-                                console.log('first packet with codec data: ' + mimeCodec);
-                            }
-                            if (!this.sourceBuffer && this.livestream) {
-                                this.sourceBuffer = this.ms.addSourceBuffer('video/mp4; codecs="' + mimeCodec + '"');
-                                this.sourceBuffer.mode = "segments";
-                                this.sourceBuffer.addEventListener("updateend", this.loadPacket);
-                            }
-                        } else {
-                            console.log('pushPacket+');
-                            this.pushPacket(event.data);
-                        }
-                    };
-                    
-                        // функция для отправки echo-сообщений на сервер
-                        // function wsSendEcho(value) {
-                        //     this.ws.send(JSON.stringify({action: 'ECHO', data: value.toString()}));
-                        // }
-                        
-                        
-                };
-                this.stop = () => {
-                    this.isPlaying = false;
-                    if (this.ws) {
-                        this.ws.close();
-                        if (this.livestream && this.sourceBuffer) {
-                            this.sourceBuffer.abort();
-                            if (this.livestream.currentTime > 0) {
-                                this.sourceBuffer.remove(0, this.livestream.currentTime);
-                            }
-                            this.livestream.currentTime = 0
-                        }
-                    }
-                };
-                this.pushPacket = (arr) => {
-                    let view = new Uint8Array(arr);
-                    console.log('push event.data:', view.buffer);
-                    if (this.verbose) {
-                        console.log("got", arr.byteLength, "bytes.  Values=", view[0], view[1], view[2], view[3], view[4]);
-                    }
-                    let data = arr;
-                    if (!this.streamingStarted && this.livestream) {
-                        this.sourceBuffer.appendBuffer(view.buffer);
-                        this.streamingStarted = true;
-                        return;
-                    }
-                    this.queue.push(data);
-                    if (this.verbose) {
-                        console.log("queue push:", this.queue.length);
-                    }
-                    if (!this.sourceBuffer.updating) {
-                        this.loadPacket();
-                    }
-                };
-                this.loadPacket = () => {
-                    if (!this.sourceBuffer.updating && this.livestream) {
-                        if (this.queue.length > 0) {
-                            let inp = this.queue.shift();
-                            if (this.verbose) {
-                                console.log("queue PULL:", this.queue.length);
-                            }
-                            let view = new Uint8Array(inp);
-                            if (this.verbose) {
-                                console.log("writing buffer with", view[0], view[1], view[2], view[3], view[4]);
-                            }
-                            this.sourceBuffer.appendBuffer(inp);
-                        } else {
-                            this.streamingStarted = false;
-                        }
-                    }
-                }
-                return this;
+    <script>
+        window.onload = function() {
+            let element = document.getElementById("livestream");
+            let opts = {
+                debug: true,
+                
+            };
+            let streamUrl = "ws://127.0.0.1:3001";
+            let url = (window.location.protocol == "https:" ? "wss:" : "ws:") + '//' +window.location.host+ ':3001/';
+            // console.log(window.location.host);
+            window.player = new FlussonicMsePlayer(element, url, opts);
+
+            
+            // console.log(window.player.ws);
+            // console.log(window.player.replaceHttpByWS());
+            window.player.onMessage = (event) => {
+                console.log(event);
+            }
+            let videotrack = 'videotrack';
+            let audiotrack = 'audiotrack';
+            window.player.play();
+            // console.log(window.player.getVideoTracks());
+            element.style.display = 'flex';
+            
+            // window.play = (videotrack = undefined, audiotrack) => {
+            //     if (!videotrack) {
+            //         audiotrack = undefined;
+            //     }
+            //     window.player
+            //         .play(videotrack, audiotrack)
+            //         .then((success) => {
+            //         console.log('resolve', success);
+            //     })
+            //         .catch((err) => {
+            //         console.log(err);
+            //     });
+            // };
+
+            window.onMediaInfo = (rawMetaData) => {
+                console.log(rawMetaData);
+                var videoTracks = window.player.getVideoTracks()
+                var audioTracks = window.player.getAudioTracks()
+                var videoOptions = videoTracks.map((v, i) => (
+                    `<option value="${v['track_id']}">${v['bitrate']} ${v['codec']} ${v['fps']} ${v['width']}x${v['height']}</option>`
+                ))
+
+                var audioOptions = audioTracks.map(v => (
+                    `<option value="${v['track_id']}">${v['bitrate']} ${v['codec']} ${v['lang']}</option>`
+                ))
+
+                mbrControls.style.display = 'block'
             }
 
-            const player = playerInstance();
-            player.initialize();
-            
+            window.setTracks = () => {
+                var videoTrackId = window.player.getVideoTracks();
+                var audioTrackId = window.player.getAudioTracks();
 
-        // window.onload = msePlayer();
-    </script>
-    <!-- <script src="index.js"></script> -->
+                window.player.setTracks([videoTrackId, audioTrackId])
+            }
+        }
+    </script> -->
 </body>
 
 </html>
